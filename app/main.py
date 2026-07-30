@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router as tracker_router
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 app = FastAPI(title="Macro Tracker API",
               description="API for tracking daily macro intake by processing user input.",

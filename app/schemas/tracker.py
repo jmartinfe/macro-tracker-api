@@ -1,5 +1,6 @@
+from datetime import date
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import List
 
 class MacroGoals(BaseModel):
     calories: int = Field(default = 2200, description="The daily calorie goal")
@@ -16,7 +17,7 @@ class MealItem(BaseModel):
     fats: int = Field(..., description="The fat content of the meal item in grams")
 
 class DailyTrackerState(BaseModel):
-    date: str = Field(..., description="The date for the daily tracker state in YYYY-MM-DD format")
+    current_date: date = Field(..., description="The date for the daily tracker state in YYYY-MM-DD format")
     macro_goals: MacroGoals = Field(..., description="The macro goals for the day")
     meals: List[MealItem] = Field(default_factory=list, description="A list of meal items consumed during the day")
     total_calories: int = Field(default=0, description="The total calories consumed during the day")
@@ -26,4 +27,3 @@ class DailyTrackerState(BaseModel):
 
 class ProcessInputRequest(BaseModel):
     user_input: str = Field(..., description="The user input string to be processed")
-    current_state: DailyTrackerState = Field(..., description="The current state of the daily tracker")
