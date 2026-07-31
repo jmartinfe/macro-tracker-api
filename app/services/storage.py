@@ -34,12 +34,13 @@ def load_daily_tracker_state() -> DailyTrackerState:
         )
 
     try:
-        with open(FILE_PATH, "r") as file:
-            data = file.read()
-            return DailyTrackerState.model_validate_json(data)
+        with open(FILE_PATH, "r", encoding="utf-8") as file:
+            data = file.read()        
 
-        if state.current_date != date.today():
-            # If the loaded state is not for today, reset to default
+        # If the loaded state is not for today, reset to default
+        state = DailyTrackerState.model_validate_json(data)
+        
+        if state.current_date < date.today():            
             return DailyTrackerState(
                 current_date=date.today(),
                 macro_goals=MacroGoals(),
@@ -49,6 +50,8 @@ def load_daily_tracker_state() -> DailyTrackerState:
                 total_carbs=0,
                 total_fats=0
             )
+        return state
+    
     except Exception as e:
         error_message = f"Error loading daily tracker state: {str(e)}"
         try:
