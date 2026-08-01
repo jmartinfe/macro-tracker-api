@@ -1,6 +1,6 @@
 from datetime import date
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 class MacroGoals(BaseModel):
     calories: int = Field(default = 2200, description="The daily calorie goal")
@@ -26,4 +26,5 @@ class DailyTrackerState(BaseModel):
     total_fats: int = Field(default=0, description="The total fats consumed during the day in grams")
 
 class ProcessInputRequest(BaseModel):
+    id: str = Field(..., description="The ID of the daily tracker state file to be modified")
     user_input: str = Field(..., description="The user input string to be processed")
