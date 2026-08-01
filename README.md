@@ -46,8 +46,15 @@ Create a .env file in the root directory based on the example below:
 Access the interactive API docs at http://127.0.0.1:8000/docs.
 
 ## 📡 API Endpoints
-GET /daily_tracker_state — Retrieves the current day's macros, daily goals, and meal log.
 
-POST /process_input — Accepts a JSON payload ({"text": "..."}) with natural language input, updates the daily state, and returns the recalculated totals.
+All tracker endpoints are prefixed with `/tracker`.
 
-GET /health — Service health check endpoint.
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/tracker/health` | Health check endpoint to verify API availability. |
+| `GET` | `/tracker/daily_tracker_state/{id}` | Retrieves the current daily state and macros for a specific user/session ID. |
+| `POST` | `/tracker/process_input` | Processes natural language text/voice input and updates the tracker state. |
+| `PUT` | `/tracker/update_meal_entry?id={id}` | Updates an existing meal entry within the specified state file. |
+| `DELETE` | `/tracker/delete_meal_entry?meal_id={meal_id}&id={id}` | Removes a specific meal entry by its ID. |
+| `DELETE` | `/tracker/clean_old_states` | Administrative cleanup task that purges outdated state files. |
+
