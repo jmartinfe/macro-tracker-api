@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.tracker import MealItem, ProcessInputRequest, DailyTrackerState
 from app.services.storage import load_daily_tracker_state

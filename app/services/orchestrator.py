@@ -33,7 +33,6 @@ async def delete_meal(meal_id: str, id: str) -> DailyTrackerState:
         DailyTrackerState: The updated daily tracker state after deleting the meal entry.
     """
     deleted_state = delete_meal_entry(meal_id, id=id)
-
     # Save the updated state back to storage
     save_daily_tracker_state(deleted_state, id=id)
 

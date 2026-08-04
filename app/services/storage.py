@@ -102,6 +102,7 @@ def delete_meal_entry(meal_id: str, id: str) -> DailyTrackerState:
     """
     state = load_daily_tracker_state(id=id)
     state.meals = [meal for meal in state.meals if meal.id != meal_id]
+    update_state_totals(state)
     save_daily_tracker_state(state, id=id)
     return state
 
@@ -121,7 +122,25 @@ def update_meal_entry(updated_meal: MealItem, id: str) -> DailyTrackerState:
         if meal.id == updated_meal.id:
             state.meals[i] = updated_meal
             break
+    update_state_totals(state)
     save_daily_tracker_state(state, id=id)
+    return state
+
+def update_state_totals(state: DailyTrackerState) -> DailyTrackerState:
+    """
+    Update the total calories, protein, carbs, and fats in the daily tracker state
+    based on the current meals.
+    
+    Args:
+        state (DailyTrackerState): The daily tracker state to be updated.
+    
+    Returns:
+        DailyTrackerState: The updated daily tracker state with recalculated totals.
+    """
+    state.total_calories = sum(meal.calories for meal in state.meals)
+    state.total_protein = sum(meal.protein for meal in state.meals)
+    state.total_carbs = sum(meal.carbs for meal in state.meals)
+    state.total_fats = sum(meal.fats for meal in state.meals)
     return state
 
 def delete_old_states():
