@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api.routes import router as tracker_router
@@ -17,18 +18,19 @@ app = FastAPI(title="Macro Tracker API",
               description="API for tracking daily macro intake by processing user input.",
               version="0.1.0")
 
+
+
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):
     logger.error("AppError handled: %s", exc.detail)
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-@app.lifespan.on_event("startup")
-async def on_startup():
-    logger.info("Macro Tracker API startup complete")
-
-@app.lifespan.on_event("shutdown")
-async def on_shutdown():
-    logger.info("Macro Tracker API shutdown")
+# Define lifespan events for startup and shutdown
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Stream Agent API startup complete")
+    yield
+    logger.info("Stream Agent API shutdown")
 
 # Set up CORS middleware
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
