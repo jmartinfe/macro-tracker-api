@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from pathlib import Path
+from app.core.exceptions import LoadStateError, SaveStateError
 from app.schemas.tracker import DailyTrackerState, MacroGoals, MealItem
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
@@ -69,7 +70,7 @@ def load_daily_tracker_state(id: str) -> DailyTrackerState:
             save_daily_tracker_state(fallback_state, id=id)
             return fallback_state
         except Exception as save_error:
-            raise RuntimeError(f"{error_message}. Additionally, failed to save fallback state: {str(save_error)}")
+            raise LoadStateError(f"{error_message}. Additionally, failed to save fallback state: {str(save_error)}")
 
 def save_daily_tracker_state(state: DailyTrackerState, id: str = None):
     """
@@ -87,7 +88,7 @@ def save_daily_tracker_state(state: DailyTrackerState, id: str = None):
         with open(FILE_PATH, "w", encoding="utf-8") as file:
             file.write(state.model_dump_json(indent=2))
     except Exception as e:
-        raise IOError(f"Error saving daily tracker state: {str(e)}")
+        raise SaveStateError(f"Error saving daily tracker state: {str(e)}")
 
 def delete_meal_entry(meal_id: str, id: str) -> DailyTrackerState:
     """
