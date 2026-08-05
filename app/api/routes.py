@@ -1,6 +1,6 @@
-import traceback
-
-from fastapi import APIRouter, HTTPException, status
+import os
+from fastapi import APIRouter, HTTPException, Security, status, Header, Depends
+from fastapi.security import APIKeyHeader
 from app.core.exceptions import AppError, InvalidInputError
 from app.core.logging import get_logger
 from app.schemas.tracker import MealItem, ProcessInputRequest, DailyTrackerState
@@ -9,6 +9,37 @@ from app.services.orchestrator import process_user_input, clean_old_states, dele
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/tracker", tags=["Tracker"])
+
+API_KEY = os.getenv("API_KEY")
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def get_api_key():
+    """
+    Retrieve the API key from environment variables.
+    Raises an exception if the API key is not set.
+    """
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        logger.error("API_KEY environment variable is not set.")
+        raise RuntimeError("API_KEY environment variable is not set.")
+    return api_key
+
+def verify_api_key(api_key: str = Security(API_KEY_HEADER)):
+    if not api_key:
+        logger.warning("Missing API Key in request headers.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: API Key required"
+        )
+    valid_key = get_api_key()
+    if api_key != valid_key:
+        logger.warning("Invalid API Key provided", extra={"provided_key": api_key})
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Invalid API Key"
+        )
+    logger.info("API Key verified successfully")
+    return api_key
 
 # Health check endpoint
 @router.get("/health", status_code=status.HTTP_200_OK)
@@ -21,7 +52,7 @@ async def health_check():
 
 # Retrieve the current daily tracker state
 @router.get("/daily_tracker_state/{id}", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def get_daily_tracker_state_by_id(id: str):
+async def get_daily_tracker_state_by_id(id: str, api_key: str = Depends(verify_api_key)):
     """
     Retrieve the current daily tracker state based on the provided ID.
     
@@ -41,12 +72,13 @@ async def get_daily_tracker_state_by_id(id: str):
 
 # Process user input and update the daily tracker state
 @router.post("/process_input", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def process_input(request: ProcessInputRequest):
+async def process_input(request: ProcessInputRequest, api_key: str = Depends(verify_api_key)):
     """
     Process user input and update the daily tracker state accordingly.
     
     Args:
         request (ProcessInputRequest): The request body containing user input and current tracker state.
+        api_key (str): The API key for authentication.
     
     Returns:
         DailyTrackerState: The updated daily tracker state after processing the input.
@@ -68,13 +100,14 @@ async def process_input(request: ProcessInputRequest):
 
 # Delete meal entry from the daily tracker state
 @router.delete("/delete_meal_entry", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def delete_meal(meal_id: str, id: str):
+async def delete_meal(meal_id: str, id: str, api_key: str = Depends(verify_api_key)):
     """
     Delete a meal entry from the daily tracker state.
     
     Args:
         meal_id (str): The ID of the meal entry to be deleted.
         id (str): The ID of the daily tracker state file to be modified.
+        api_key (str): The API key for authentication.
     
     Returns:
         DailyTrackerState: The updated daily tracker state after deleting the meal entry.
@@ -92,13 +125,14 @@ async def delete_meal(meal_id: str, id: str):
 
 # Update meal entry in the daily tracker state
 @router.put("/update_meal_entry", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def update_meal(updated_meal: MealItem, id: str):
+async def update_meal(updated_meal: MealItem, id: str, api_key: str = Depends(verify_api_key)):
     """
     Update a meal entry in the daily tracker state.
     
     Args:
         updated_meal: The updated meal data.
         id (str): The ID of the daily tracker state file to be modified.
+        api_key (str): The API key for authentication.
     
     Returns:
         DailyTrackerState: The updated daily tracker state after updating the meal entry.
@@ -116,7 +150,7 @@ async def update_meal(updated_meal: MealItem, id: str):
 
 # Clean old daily tracker state files
 @router.delete("/clean_old_states", status_code=status.HTTP_200_OK)
-async def clean_old_states_endpoint():
+async def clean_old_states_endpoint(api_key: str = Depends(verify_api_key)):
     """
     Delete old daily tracker state files that are not for today.
     This endpoint checks the data directory for any JSON files representing

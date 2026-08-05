@@ -14,9 +14,17 @@ init_logging()
 logger = get_logger(__name__) # Initialize the logger
 rate_limiter = RateLimiter(max_requests=30, time_window=60) # Initialize the rate limiter
 
-app = FastAPI(title="Macro Tracker API",
-              description="API for tracking daily macro intake by processing user input.",
-              version="0.1.0")
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "production").lower() == "production"
+APP_TITLE = os.getenv("APP_TITLE", "Macro Tracker API")
+
+app = FastAPI(
+    title=APP_TITLE,
+    description="API for tracking daily macro intake by processing user input.",
+    version="0.1.0",
+    docs_url="/docs" if not IS_PRODUCTION else None,
+    redoc_url="/redoc" if not IS_PRODUCTION else None,
+    openapi_url="/openapi.json" if not IS_PRODUCTION else None
+)
 
 
 
