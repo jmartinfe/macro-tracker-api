@@ -1,3 +1,4 @@
+from datetime import date
 import os
 from fastapi import APIRouter, HTTPException, Security, status, Header, Depends
 from fastapi.security import APIKeyHeader
@@ -52,19 +53,20 @@ async def health_check():
 
 # Retrieve the current daily tracker state
 @router.get("/daily_tracker_state/{id}", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def get_daily_tracker_state_by_id(id: str, api_key: str = Depends(verify_api_key)):
+async def get_daily_tracker_state_by_id(id: str, input_date: date = date.today(), api_key: str = Depends(verify_api_key)):
     """
     Retrieve the current daily tracker state based on the provided ID.
     
     Args:
         id (str): The ID of the daily tracker state file to be retrieved.
+        input_date (date): The date for which to load the tracker state.
     
     Returns:
         DailyTrackerState: The current daily tracker state for the specified ID.
     """
     logger.info("Loading daily tracker state for id=%s", id)
     try:
-        state = load_daily_tracker_state(id=id)
+        state = load_daily_tracker_state(id=id, input_date=input_date)
         return state
     except Exception as e:
         logger.exception("Failed to load daily tracker state for id=%s", id)
@@ -89,7 +91,7 @@ async def process_input(request: ProcessInputRequest, api_key: str = Depends(ver
 
     logger.info("Processing user input for id=%s", request.id)
     try:
-        updated_state = await process_user_input(request.user_input, id=request.id)
+        updated_state = await process_user_input(request.user_input, id=request.id, input_date=request.input_date)
         logger.info("Processed user input for id=%s", request.id)
         return updated_state
     except AppError:
@@ -100,13 +102,14 @@ async def process_input(request: ProcessInputRequest, api_key: str = Depends(ver
 
 # Delete meal entry from the daily tracker state
 @router.delete("/delete_meal_entry", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def delete_meal(meal_id: str, id: str, api_key: str = Depends(verify_api_key)):
+async def delete_meal(meal_id: str, id: str, input_date: date = date.today(), api_key: str = Depends(verify_api_key)):
     """
     Delete a meal entry from the daily tracker state.
     
     Args:
         meal_id (str): The ID of the meal entry to be deleted.
         id (str): The ID of the daily tracker state file to be modified.
+        input_date (date): The date for which to load the tracker state.
         api_key (str): The API key for authentication.
     
     Returns:
@@ -114,7 +117,7 @@ async def delete_meal(meal_id: str, id: str, api_key: str = Depends(verify_api_k
     """
     logger.info("Deleting meal entry meal_id=%s for id=%s", meal_id, id)
     try:
-        deleted_state = await orchestrator_delete_meal(meal_id, id=id)
+        deleted_state = await orchestrator_delete_meal(meal_id, id=id, input_date=input_date)
         logger.info("Deleted meal entry meal_id=%s for id=%s", meal_id, id)
         return deleted_state
     except AppError:
@@ -125,13 +128,14 @@ async def delete_meal(meal_id: str, id: str, api_key: str = Depends(verify_api_k
 
 # Update meal entry in the daily tracker state
 @router.put("/update_meal_entry", response_model=DailyTrackerState, status_code=status.HTTP_200_OK)
-async def update_meal(updated_meal: MealItem, id: str, api_key: str = Depends(verify_api_key)):
+async def update_meal(updated_meal: MealItem, id: str, input_date: date = date.today(), api_key: str = Depends(verify_api_key)):
     """
     Update a meal entry in the daily tracker state.
     
     Args:
         updated_meal: The updated meal data.
         id (str): The ID of the daily tracker state file to be modified.
+        input_date (date): The date for which to load the tracker state.
         api_key (str): The API key for authentication.
     
     Returns:
@@ -139,7 +143,7 @@ async def update_meal(updated_meal: MealItem, id: str, api_key: str = Depends(ve
     """
     logger.info("Updating meal entry id=%s meal_id=%s", id, updated_meal.id)
     try:
-        updated_state = await orchestrator_update_meal(updated_meal, id=id)
+        updated_state = await orchestrator_update_meal(updated_meal, id=id, input_date=input_date)
         logger.info("Updated meal entry id=%s meal_id=%s", id, updated_meal.id)
         return updated_state
     except AppError:
@@ -150,7 +154,7 @@ async def update_meal(updated_meal: MealItem, id: str, api_key: str = Depends(ve
 
 # Clean old daily tracker state files
 @router.delete("/clean_old_states", status_code=status.HTTP_200_OK)
-async def clean_old_states_endpoint(api_key: str = Depends(verify_api_key)):
+async def clean_old_states_endpoint(input_date: date = date.today(), api_key: str = Depends(verify_api_key)):
     """
     Delete old daily tracker state files that are not for today.
     This endpoint checks the data directory for any JSON files representing
@@ -158,7 +162,7 @@ async def clean_old_states_endpoint(api_key: str = Depends(verify_api_key)):
     """
     logger.info("Cleaning old tracker state files")
     try:
-        await clean_old_states()
+        await clean_old_states(input_date=input_date)
         logger.info("Cleaned old tracker state files successfully")
         return {"status": "Old daily tracker state files cleaned successfully."}
     except AppError:

@@ -12,7 +12,7 @@ def _ensure_data_dir_exists():
     """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-def load_daily_tracker_state(id: str) -> DailyTrackerState:
+def load_daily_tracker_state(id: str, input_date: date = date.today()) -> DailyTrackerState:
     """
     Load the daily tracker state from a JSON file. If the file does not exist,
     return a default DailyTrackerState with today's date and default macro goals.
@@ -27,7 +27,7 @@ def load_daily_tracker_state(id: str) -> DailyTrackerState:
     if not FILE_PATH.exists():
         # Return a default state if the file does not exist
         return DailyTrackerState(
-            current_date=date.today(),
+            current_date=input_date,
             macro_goals=MacroGoals(),
             meals=[],
             total_calories=0,
@@ -43,9 +43,9 @@ def load_daily_tracker_state(id: str) -> DailyTrackerState:
         # If the loaded state is not for today, reset to default
         state = DailyTrackerState.model_validate_json(data)
         
-        if state.current_date < date.today():            
+        if state.current_date < input_date :
             return DailyTrackerState(
-                current_date=date.today(),
+                current_date=input_date,
                 macro_goals=MacroGoals(),
                 meals=[],
                 total_calories=0,
@@ -59,7 +59,7 @@ def load_daily_tracker_state(id: str) -> DailyTrackerState:
         error_message = f"Error loading daily tracker state: {str(e)}"
         try:
             fallback_state = DailyTrackerState(
-                current_date=date.today(),
+                current_date=input_date,
                 macro_goals=MacroGoals(),
                 meals=[],
                 total_calories=0,
@@ -90,35 +90,37 @@ def save_daily_tracker_state(state: DailyTrackerState, id: str = None):
     except Exception as e:
         raise SaveStateError(f"Error saving daily tracker state: {str(e)}")
 
-def delete_meal_entry(meal_id: str, id: str) -> DailyTrackerState:
+def delete_meal_entry(meal_id: str, input_date: date = date.today(), id: str = None) -> DailyTrackerState:
     """
     Delete a meal entry from the daily tracker state by its ID.
     
     Args:
         meal_id (str): The ID of the meal entry to be deleted.
+        input_date (date): The date for which to load the tracker state.
         id (str): The ID of the daily tracker state file to be modified.
     
     Returns:
         DailyTrackerState: The updated daily tracker state after deleting the meal entry.
     """
-    state = load_daily_tracker_state(id=id)
+    state = load_daily_tracker_state(id=id, input_date=input_date)
     state.meals = [meal for meal in state.meals if meal.id != meal_id]
     update_state_totals(state)
     save_daily_tracker_state(state, id=id)
     return state
 
-def update_meal_entry(updated_meal: MealItem, id: str) -> DailyTrackerState:
+def update_meal_entry(updated_meal: MealItem, input_date: date = date.today(), id: str = None) -> DailyTrackerState:
     """
     Update a meal entry in the daily tracker state by its ID.
     
     Args:
         updated_meal (MealItem): The updated meal data.
+        input_date (date): The date for which to load the tracker state.
         id (str): The ID of the daily tracker state file to be modified.
     
     Returns:
         DailyTrackerState: The updated daily tracker state after updating the meal entry.
     """
-    state = load_daily_tracker_state(id=id)
+    state = load_daily_tracker_state(id=id, input_date=input_date)
     for i, meal in enumerate(state.meals):
         if meal.id == updated_meal.id:
             state.meals[i] = updated_meal
@@ -144,7 +146,7 @@ def update_state_totals(state: DailyTrackerState) -> DailyTrackerState:
     state.total_fats = sum(meal.fats for meal in state.meals)
     return state
 
-def delete_old_states():
+def delete_old_states(input_date: date = date.today()):
     """
     Delete old daily tracker state files that are not for today or yesterday.
     This function checks the data directory for any JSON files representing
@@ -155,7 +157,7 @@ def delete_old_states():
         try:
             with open(file, "r", encoding="utf-8") as f:
                 state = DailyTrackerState.model_validate_json(f.read())
-                if state.current_date < date.today() - timedelta(days=1):
+                if state.current_date < input_date - timedelta(days=1):
                     file.unlink()  # Delete the old state file
         except Exception as e:
             print(f"Error processing file {file}: {str(e)}")

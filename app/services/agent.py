@@ -1,3 +1,4 @@
+from datetime import date
 import os
 from openai import OpenAI
 from app.schemas.tracker import DailyTrackerState
